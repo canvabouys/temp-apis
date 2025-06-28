@@ -1,13 +1,13 @@
 import os
+import random
+import logging
+import tenacity
 import requests
 import urllib.parse
+from bs4 import BeautifulSoup
 from pydantic import BaseModel
 from fake_useragent import UserAgent
 from fastapi import FastAPI, HTTPException
-from bs4 import BeautifulSoup
-import tenacity
-import logging
-import random
 
 app = FastAPI(title="TempEmailAPI", description="API for generating temporary Gmail addresses and retrieving messages via Emailnator")
 
@@ -106,7 +106,7 @@ class MessageDetailsRequest(BaseModel):
 @tenacity.retry(
     stop=tenacity.stop_after_attempt(5),
     wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
-    before_sleep=tenacity.before_sleep_logging(logger, logging.INFO),
+    before_sleep=tenacity.before_log(logger, logging.INFO),
     retry=tenacity.retry_if_exception_type((requests.RequestException, HTTPException)),
     after=tenacity.after_log(logger, logging.WARNING)
 )
