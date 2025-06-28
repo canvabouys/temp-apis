@@ -3,7 +3,7 @@ import requests
 import urllib.parse
 from pydantic import BaseModel
 from fake_useragent import UserAgent
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, HTTPException
 from bs4 import BeautifulSoup
 
 app = FastAPI(title="TempEmailAPI", description="API for generating temporary Gmail addresses and retrieving messages via Emailnator")
@@ -36,9 +36,6 @@ headers = {
     'x-requested-with': 'XMLHttpRequest',
 }
 
-class EmailRequest(BaseModel):
-    email_type: list = ["dotGmail"]
-
 class MessageRequest(BaseModel):
     email: str
 
@@ -63,12 +60,13 @@ def get_cookies_csrf():
     return session, csrf_token
 
 @app.post("/generate-email", summary="Generate a temporary Gmail address")
-async def generate_email(request: EmailRequest, x_rapidapi_key: str = Header(...)):
+async def generate_email():
     session, csrf_token = get_cookies_csrf()
     decoded_token = urllib.parse.unquote(csrf_token)
     session.headers['X-XSRF-TOKEN'] = decoded_token
     
-    response = session.post('https://www.emailnator.com/generate-email', json={"email": request.email_type})
+    # Hardcode "dotGmail" internally
+    response = session.post('https://www.emailnator.com/generate-email', json={"email": ["dotGmail"]})
     if response.status_code == 200:
         try:
             email_data = response.json()
@@ -81,7 +79,7 @@ async def generate_email(request: EmailRequest, x_rapidapi_key: str = Header(...
     raise HTTPException(status_code=response.status_code, detail="Failed to generate email")
 
 @app.post("/message-list", summary="Retrieve message list for an email")
-async def get_message_list(request: MessageRequest, x_rapidapi_key: str = Header(...)):
+async def get_message_list(request: MessageRequest):
     session, csrf_token = get_cookies_csrf()
     decoded_token = urllib.parse.unquote(csrf_token)
     session.headers['X-XSRF-TOKEN'] = decoded_token
@@ -97,7 +95,7 @@ async def get_message_list(request: MessageRequest, x_rapidapi_key: str = Header
     raise HTTPException(status_code=response.status_code, detail="Failed to fetch message list")
 
 @app.post("/message-content", summary="Retrieve content of a specific message")
-async def get_message_content(request: MessageContentRequest, x_rapidapi_key: str = Header(...)):
+async def get_message_content(request: MessageContentRequest):
     session, csrf_token = get_cookies_csrf()
     decoded_token = urllib.parse.unquote(csrf_token)
     session.headers['X-XSRF-TOKEN'] = decoded_token
