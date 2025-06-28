@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from bs4 import BeautifulSoup
 import tenacity
 import logging
+import random
 
 app = FastAPI(title="TempEmailAPI", description="API for generating temporary Gmail addresses and retrieving messages via Emailnator")
 
