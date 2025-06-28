@@ -126,7 +126,3 @@ async def get_message_content(request: MessageContentRequest, x_rapidapi_key: st
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error processing message content: {str(e)}")
     raise HTTPException(status_code=response.status_code, detail="Failed to fetch message content")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, workers=1)
