@@ -136,8 +136,7 @@ async def get_message_details(request: MessageDetailsRequest):
                 "from": from_value,
                 "subject": subject,
                 "time": time_value,
-                "refined_content": refined_content,
-                "raw_content": raw_content
+                "refined_content": refined_content
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error processing message details: {str(e)}")
