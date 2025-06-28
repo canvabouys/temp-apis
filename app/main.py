@@ -39,7 +39,7 @@ headers = {
 class MessageRequest(BaseModel):
     email: str
 
-class MessageContentRequest(BaseModel):
+class MessageDetailsRequest(BaseModel):
     email: str
     message_id: str
 
@@ -94,33 +94,48 @@ async def get_message_list(request: MessageRequest):
             raise HTTPException(status_code=500, detail=f"Error parsing message list: {str(e)}")
     raise HTTPException(status_code=response.status_code, detail="Failed to fetch message list")
 
-@app.post("/message-content", summary="Retrieve content of a specific message")
-async def get_message_content(request: MessageContentRequest):
+@app.post("/message-details", summary="Retrieve detailed information for a specific message")
+async def get_message_details(request: MessageDetailsRequest):
     session, csrf_token = get_cookies_csrf()
     decoded_token = urllib.parse.unquote(csrf_token)
     session.headers['X-XSRF-TOKEN'] = decoded_token
     
     response = session.post('https://www.emailnator.com/message-list', json={"email": request.email, "messageID": request.message_id})
     print("Raw response text:", response.text)  # Debug log
-    print("\nStatus (message content):", response.status_code)
+    print("\nStatus (message details):", response.status_code)
     
     if response.status_code == 200:
         try:
             if not response.text.strip():  # Check if response is empty
-                raise HTTPException(status_code=404, detail="No message content available")
+                raise HTTPException(status_code=404, detail="No message details available")
             
-            # Extract cleaned text using BeautifulSoup
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # Remove script and style elements
+            # Attempt to parse JSON response
+            data = response.json()
+            message_data = data.get('messageData', [{}])[0] if isinstance(data, dict) and 'messageData' in data else {}
+            
+            # Extract fields from JSON (adjust keys based on actual response)
+            message_id = request.message_id
+            from_value = message_data.get('from', 'Unknown')
+            subject = message_data.get('subject', 'No Subject')
+            time_value = message_data.get('time', 'Unknown Time')
+            raw_content = response.text  # Raw response text
+            
+            # Refine content using BeautifulSoup
+            soup = BeautifulSoup(raw_content, 'html.parser')
             for script in soup(["script", "style"]):
                 script.decompose()
-            # Get text and strip whitespace
-            cleaned_content = ' '.join(soup.get_text().split())
+            refined_content = ' '.join(soup.get_text().split())
             
             return {
-                "cleaned_content": cleaned_content,
-                "raw_content": response.text
+                "message_id": message_id,
+                "from": from_value,
+                "subject": subject,
+                "time": time_value,
+                "refined_content": refined_content,
+                "raw_content": raw_content
             }
+        except ValueError:  # Handle non-JSON response
+            raise HTTPException(status_code=500, detail="Invalid response format from Emailnator")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error processing message content: {str(e)}")
-    raise HTTPException(status_code=response.status_code, detail="Failed to fetch message content")
+            raise HTTPException(status_code=500, detail=f"Error processing message details: {str(e)}")
+    raise HTTPException(status_code=response.status_code, detail="Failed to fetch message details")
