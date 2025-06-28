@@ -4,3 +4,4 @@ requests
 pydantic
 fake-useragent
 beautifulsoup4
+tenacity
